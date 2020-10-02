@@ -14,6 +14,10 @@ Eating is not limited by the remaining amounts of spaghetti or stomach space; an
 The problem is how to design a discipline of behavior (a concurrent algorithm) such that no philosopher will starve; i.e., each can forever continue to alternate between eating and thinking, assuming that no philosopher can know when others may want to eat or think.
 
 # Solutions
+Green: Thinking
+Yellow: starving (awaiting to eat)
+Red: eating
+
 ## Semaphore
 
-![](src/semaphore.gif)
+![](./gifs/semaphore.gif)
