@@ -1,56 +1,94 @@
 package ufcg.so;
 
+import java.util.Arrays;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
 
 public class Table {
-    private boolean[] cutleries;
+    private Philosopher[] philosophers;
     private Semaphore mutex;
 
-    private int findLeftCutlery(int num) {
-        return num % this.cutleries.length;
+    private Philosopher findRightPhilosopher(int num) {
+        return philosophers[Math.floorMod(--num, this.philosophers.length)];
     }
 
-    private int findRightCutlery(int num) {
-        return ++num % this.cutleries.length;
+    private Philosopher findLeftPhilosopher(int num) {
+        return philosophers[++num % this.philosophers.length];
     }
 
     public Table(int count) {
-        // cutlery = true = busy
-        // cutlery = false = available
-        this.cutleries = new boolean[count];
+        this.philosophers = new Philosopher[count];
         this.mutex = new Semaphore(1);
+
+        for (int i = 0; i < philosophers.length; i++) {
+            philosophers[i] = new Philosopher(i, this);
+        }
+
+        while (true) {
+            printStates();
+        }
     }
 
-    public boolean getCutlery(int philId) {
-        boolean got = false;
+    public static void clearScreen() {
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+    }
+
+    private void printStates() {
+        String states = Arrays.stream(philosophers)
+                .map(Philosopher::toString)
+                .collect(Collectors.joining("\n"));
+        try {
+            Thread.sleep(1000);
+            clearScreen();
+            System.out.println(states);
+        } catch (InterruptedException e) {
+            System.exit(1);
+        }
+    }
+
+    public void getCutlery(Philosopher philosopher) {
+        int philId = philosopher.getId();
+        Philosopher leftPhilosopher = findLeftPhilosopher(philId);
+        Philosopher rightPhilosopher = findRightPhilosopher(philId);
+
         try {
             this.mutex.acquire();
-            int leftIndex = findLeftCutlery(philId);
-            int rightIndex = findRightCutlery(philId);
+            philosopher.setStarving();
 
-            if (!cutleries[leftIndex] &&
-                !cutleries[rightIndex]) {
-
-                cutleries[leftIndex] = true;
-                cutleries[rightIndex] = true;
-                got = true;
+            if (leftPhilosopher.isNotEating() &&
+                rightPhilosopher.isNotEating()) {
+                philosopher.setEating();
+                philosopher.useTurn();
             }
         } catch (InterruptedException e) {
             System.out.println("Interrupt na thread: " + philId);
         }
 
         this.mutex.release();
-        return got;
+        philosopher.awaitTurn();
     }
 
-    public void putCutlery(int philId) {
+    public void putCutlery(Philosopher philosopher) {
+        int philId = philosopher.getId();
+        Philosopher leftPhilosopher = findLeftPhilosopher(philId);
+        Philosopher rightPhilosopher = findRightPhilosopher(philId);
+
         try {
             this.mutex.acquire();
-            int leftIndex = findLeftCutlery(philId);
-            int rightIndex = findRightCutlery(philId);
+            philosopher.setThinking();
 
-            cutleries[leftIndex] = false;
-            cutleries[rightIndex] = false;
+            if (leftPhilosopher.isStarving() &&
+                    findLeftPhilosopher(leftPhilosopher.getId()).isNotEating()) {
+                leftPhilosopher.setEating();
+                leftPhilosopher.useTurn();
+            }
+
+            if (rightPhilosopher.isStarving() &&
+                    findRightPhilosopher(rightPhilosopher.getId()).isNotEating()) {
+                rightPhilosopher.setEating();
+                rightPhilosopher.useTurn();
+            }
         } catch (InterruptedException e) {
             System.out.println("Interrupt na thread: " + philId);
         }

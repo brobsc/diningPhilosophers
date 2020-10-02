@@ -5,10 +5,6 @@ public class Main {
         int NUM = 5;
         System.out.println("Hello World!");
 
-        Table table = new Table(NUM);
-
-        for (int i = 0; i < NUM; i++) {
-            new Philosopher(i, table);
-        }
+        new Table(NUM);
     }
 }
